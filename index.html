@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L'Univers de Mouatez</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Fredoka', sans-serif; }
+        .card-perspective { perspective: 1000px; }
+        .card-inner { transition: transform 0.6s; transform-style: preserve-3d; }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .card-front, .card-back { backface-visibility: hidden; }
+        .card-back { transform: rotateY(180deg); }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <header class="gradient-bg text-white p-8 shadow-xl text-center rounded-b-[3rem]">
+        <h1 class="text-5xl font-extrabold tracking-tight drop-shadow-md">L'Univers de Mouatez 🚀</h1>
+        <p class="mt-2 text-indigo-100 text-lg">Prêt pour l'aventure, petit génie ?</p>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+        <div class="flex flex-wrap justify-center gap-4 mb-10">
+            <button onclick="showSection('home')" class="bg-white hover:bg-slate-100 px-6 py-2 rounded-full font-bold text-indigo-600 transition shadow-sm border border-indigo-100">Accueil</button>
+            <button onclick="showSection('memory')" class="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-3 px-6 rounded-2xl shadow-lg transition transform hover:scale-105 active:scale-95">Jeu de Mémoire</button>
+            <button onclick="showSection('quiz')" class="bg-emerald-400 hover:bg-emerald-500 text-emerald-900 font-bold py-3 px-6 rounded-2xl shadow-lg transition transform hover:scale-105 active:scale-95">Le Quiz des Génies</button>
+        </div>
+
+        <section id="home-section" class="text-center mt-10">
+            <div class="bg-white p-8 rounded-3xl shadow-xl max-w-lg mx-auto">
+                <div class="text-6xl mb-6">👋</div>
+                <h2 class="text-3xl font-bold text-slate-800">Bienvenue, Mouatez !</h2>
+                <p class="mt-4 text-slate-500 text-lg">Choisis un jeu ci-dessus pour commencer à t'amuser et devenir un champion.</p>
+            </div>
+        </section>
+
+        <section id="memory-section" class="game-section hidden max-w-2xl mx-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Jeu de Mémoire</h2>
+                <span id="moves" class="bg-indigo-100 text-indigo-700 px-4 py-1 rounded-full font-bold">Coups : 0</span>
+            </div>
+            <div id="memory-grid" class="grid grid-cols-4 gap-4"></div>
+        </section>
+
+        <section id="quiz-section" class="game-section hidden max-w-md mx-auto">
+            <div id="quiz-container" class="bg-white p-8 rounded-3xl shadow-xl border-t-8 border-emerald-400">
+                <div id="quiz-content">
+                    <p id="progress" class="text-sm text-slate-400 mb-2 font-bold uppercase tracking-wider">Question 1/2</p>
+                    <h2 class="text-2xl font-bold mb-6" id="question-text">Chargement...</h2>
+                    <div id="options-grid" class="grid grid-cols-1 gap-3"></div>
+                </div>
+                <div id="result-box" class="hidden text-center py-6">
+                    <div class="text-6xl mb-4">🏆</div>
+                    <h3 class="text-2xl font-bold">Quiz Terminé !</h3>
+                    <p id="score-text" class="mt-2 text-lg"></p>
+                    <button onclick="restartQuiz()" class="mt-6 bg-emerald-500 text-white px-6 py-2 rounded-full font-bold">Rejouer</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- Navigation ---
+        function showSection(id) {
+            document.querySelectorAll('.game-section').forEach(s => s.classList.add('hidden'));
+            document.getElementById('home-section').classList.add('hidden');
+            if (id === 'home') {
+                document.getElementById('home-section').classList.remove('hidden');
+            } else {
+                document.getElementById(id + '-section').classList.remove('hidden');
+            }
+        }
+
+        // --- Memory Game Logic ---
+        const emojis = ['🚀', '🚀', '🌟', '🌟', '🧩', '🧩', '🎨', '🎨'];
+        let shuffled = emojis.sort(() => Math.random() - 0.5);
+        let flippedCards = [];
+        let matches = 0;
+        let moves = 0;
+
+        function initMemory() {
+            const grid = document.getElementById('memory-grid');
+            grid.innerHTML = '';
+            shuffled.forEach((emoji, index) => {
+                const card = document.createElement('div');
+                card.className = 'card card-perspective w-full h-24 cursor-pointer';
+                card.dataset.emoji = emoji;
+                card.innerHTML = `
+                    <div class="card-inner w-full h-full relative">
+                        <div class="card-front absolute w-full h-full bg-indigo-500 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg">?</div>
+                        <div class="card-back absolute w-full h-full bg-white rounded-2xl flex items-center justify-center text-4xl shadow-md border-2 border-indigo-100">${emoji}</div>
+                    </div>
+                `;
+                card.onclick = () => flipCard(card);
+                grid.appendChild(card);
+            });
+        }
+
+        function flipCard(card) {
+            if (flippedCards.length < 2 && !card.classList.contains('flipped')) {
+                card.classList.add('flipped');
+                flippedCards.push(card);
+                if (flippedCards.length === 2) {
+                    moves++;
+                    document.getElementById('moves').innerText = `Coups : ${moves}`;
+                    checkMatch();
+                }
+            }
+        }
+
+        function checkMatch() {
+            const [c1, c2] = flippedCards;
+            if (c1.dataset.emoji === c2.dataset.emoji) {
+                matches++;
+                flippedCards = [];
+                if (matches === 4) alert("Bravo Mouatez ! Tu as gagné !");
+            } else {
+                setTimeout(() => {
+                    c1.classList.remove('flipped');
+                    c2.classList.remove('flipped');
+                    flippedCards = [];
+                }, 1000);
+            }
+        }
+
+        // --- Quiz Logic ---
+        const questions = [
+            { q: "Combien font 2 + 2 ?", a: ["4", "3", "5"], correct: "4" },
+            { q: "Quelle est la couleur du ciel ?", a: ["Vert", "Bleu", "Red"], correct: "Bleu" }
+        ];
+        let currentQ = 0;
+        let score = 0;
+
+        function renderQuestion() {
+            const q = questions[currentQ];
+            document.getElementById('progress').innerText = `Question ${currentQ + 1}/${questions.length}`;
+            document.getElementById('question-text').innerText = q.q;
+            const container = document.getElementById('options-grid');
+            container.innerHTML = '';
+            q.a.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "p-4 bg-slate-100 rounded-xl hover:bg-emerald-100 hover:text-emerald-800 font-semibold transition border-2 border-transparent hover:border-emerald-300";
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt, q.correct);
+                container.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected, correct) {
+            if (selected === correct) score++;
+            currentQ++;
+            if (currentQ < questions.length) {
+                renderQuestion();
+            } else {
+                document.getElementById('quiz-content').classList.add('hidden');
+                document.getElementById('result-box').classList.remove('hidden');
+                document.getElementById('score-text').innerText = `Ton score : ${score}/${questions.length}`;
+            }
+        }
+
+        function restartQuiz() {
+            currentQ = 0;
+            score = 0;
+            document.getElementById('quiz-content').classList.remove('hidden');
+            document.getElementById('result-box').classList.add('hidden');
+            renderQuestion();
+        }
+
+        // Initialisation
+        initMemory();
+        renderQuestion();
+    </script>
+</body>
+</html>
